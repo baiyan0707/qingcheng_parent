@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>admin管理</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../css/elementui.css">
+    <link rel="stylesheet" href="../plugins/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="hold-transition">
+<div id="app">
+
+    <div class="content-header">
+        <h1>管理
+            <small>admin管理</small>
+        </h1>
+        <el-breadcrumb separator-class="el-icon-arrow-right" class="breadcrumb">
+            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item>管理</el-breadcrumb-item>
+            <el-breadcrumb-item>admin管理</el-breadcrumb-item>
+        </el-breadcrumb>
+    </div>
+
+    <div class="app-container">
+        <div class="box">
+            <div class="filter-container">
+                <!--查询表单-->
+                <el-form :inline="true">
+                    <el-form-item label="用户名">
+                        <el-input v-model="searchMap.loginName" placeholder="用户名" class="filter-item"></el-input>
+                    </el-form-item>
+                    <el-button class="dalfBut" @click="fetchData">查询</el-button>
+                    <el-button type="primary" class="butT"
+                               @click="formVisible=true;admin={};roleIds=[];checkPassword=''">新增
+                    </el-button>
+                </el-form>
+            </div>
+
+            <el-table :data="tableData" border style="width: 100%">
+                <el-table-column prop="id" label="用户ID" width="180"></el-table-column>
+                <el-table-column prop="loginName" label="用户名" width="180"></el-table-column>
+                <el-table-column label="状态" width="180">
+                    <template slot-scope="scope">
+                        <el-switch
+                                v-model="scope.row.status"
+                                active-color="#13ce66"
+                                inactive-color="#ff4949"
+                                disabled
+                                active-value="1"
+                                inactive-value="0">
+                        </el-switch>
+                    </template>
+                </el-table-column>
+
+                <el-table-column
+                        label="操作">
+                    <template slot-scope="scope">
+                        <el-button @click="edit(scope.row.id)" size="mini" type="primary" size="small">修改</el-button>
+                        <el-button @click="dele(scope.row.id)" size="mini" type="danger" size="small">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div class="pagination-container">
+                <el-pagination
+                        class="pagiantion"
+                        @size-change="fetchData"
+                        @current-change="fetchData"
+                        :current-page.sync="currentPage"
+                        :page-sizes="[10, 20, 30, 40]"
+                        :page-size="size"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        :total="total">
+                </el-pagination>
+            </div>
+
+            <div class="add-form">
+                <!--弹出窗口-->
+                <el-dialog title="编辑" :visible.sync="formVisible">
+                    <el-form label-width="80px">
+                        <el-form-item label="用户名">
+                            <el-input v-model="admin.loginName"></el-input>
+                        </el-form-item>
+                        <el-form-item label="密码">
+                            <el-input v-model="admin.password" type="password" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="确认密码">
+                            <el-input v-model="checkPassword" type="password" show-password></el-input>
+                        </el-form-item>
+
+                        <el-form-item label="所属角色">
+                            <el-select v-model="roleIds" multiple placeholder="请选择">
+                                <el-option
+                                        v-for="item in orderList"
+                                        :key="item.id"
+                                        :label="item.name"
+                                        :value="item.id">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+
+                        <el-form-item label="状态">
+                            <template slot-scope="scope">
+                                <el-switch
+                                        v-model="admin.status"
+                                        active-color="#13ce66"
+                                        inactive-color="#ff4949"
+                                        active-value="1"
+                                        inactive-value="0">
+                                </el-switch>
+                            </template>
+                        </el-form-item>
+
+                        <el-form-item>
+                            <el-button type="primary" @click="save">保存</el-button>
+                            <el-button @click="formVisible = false">关闭</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script src="/js/vue.js"></script>
+<script src="/js/axios.js"></script>
+<script src="/js/elementui.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: [],
+                currentPage: 1,
+                total: 10,
+                size: 10,
+                searchMap: {},
+                admin: {},
+                roleIds: [],
+                checkPassword: "",
+                formVisible: false,
+                orderList: []
+            }
+        },
+        created() {
+            this.fetchData();
+            axios.get("/role/findAll.do").then(response => {
+                this.orderList = response.data;
+            })
+        },
+        methods: {
+            fetchData() {
+                axios.post(`/admin/findPage.do?page=${this.currentPage}&size=${this.size}`, this.searchMap).then(response => {
+                    this.tableData = response.data.rows;
+                    this.total = response.data.total;
+                    console.log(this.tableData);
+                });
+            },
+            save() {
+                let adminDetail = {"admin": this.admin, "roleIds": this.roleIds};
+                axios.post(`/admin/${this.admin.id == null ? 'add' : 'update'}.do`, adminDetail).then(response => {
+                    this.fetchData(); //刷新列表
+                    this.formVisible = false;//关闭窗口
+                });
+            },
+            edit(id) {
+                this.formVisible = true; // 打开窗口
+                // 调用查询
+                axios.get(`/admin/findById.do?id=${id}`).then(response => {
+                    this.admin = response.data.admin;
+                    this.admin.password = null;
+                    this.checkPassword = null;
+                    this.roleIds = response.data.roleIds;
+                })
+            },
+            dele(id) {
+                this.$confirm('确定要删除此记录吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.get(`/admin/delete.do?id=${id}`).then(response => {
+                        this.fetchData(); //刷新列表
+                    })
+                })
+            }
+        }
+    })
+</script>
+</html>

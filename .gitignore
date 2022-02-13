@@ -1,0 +1,23 @@
+# Project exclude paths
+/qingcheng_common/target/
+/qingcheng_common_service/target/
+/qingcheng_common_web/target/
+/qingcheng_interface/target/
+/qingcheng_pojo/target/
+/qingcheng_service_business/target/
+/qingcheng_service_config/target/
+/qingcheng_service_goods/target/
+/qingcheng_service_order/target/
+/qingcheng_service_system/target/
+/qingcheng_service_user/target/
+/qingcheng_web_manager/target/
+/qingcheng_web_portal/target/
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+

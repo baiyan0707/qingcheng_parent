@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="../css/elementui.css">
+    <link rel="stylesheet" href="../plugins/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        #app {
+            width: 600px;
+            margin: 100px auto;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-form :label-position="labelPosition" :model="pojo" ref="pojo" :rules="rules" label-width="80px">
+        <el-form-item label="用户名: ">
+            <el-input v-model="pojo.loginName" :disabled="true"></el-input>
+        </el-form-item>
+        <el-form-item label="原密码" prop="oldPassword">
+            <el-input v-model="pojo.oldPassword" type="password"></el-input>
+        </el-form-item>
+        <el-form-item label="新密码" prop="newPassword">
+            <el-input v-model="pojo.newPassword" type="password"></el-input>
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+            <el-input v-model="pojo.confirmPassword" type="password"></el-input>
+        </el-form-item>
+        <el-form-item>
+            <el-button type="primary" @click="changePassword">修改</el-button>
+        </el-form-item>
+    </el-form>
+</div>
+<script src="/js/vue.js"></script>
+<script src="/js/axios.js"></script>
+<script src="/js/elementui.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            let validatePass = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请输入密码'));
+                } else {
+                    if (this.pojo.newpassword !== '') {
+                        this.$refs.pojo.validateField('newPassword');
+                    }
+                    callback();
+                }
+            };
+            let validatePass2 = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请再次输入密码'));
+                } else if (value !== this.pojo.newPassword) {
+                    callback(new Error('两次输入密码不一致!'));
+                } else {
+                    callback();
+                }
+            };
+            return {
+                labelPosition: 'right',
+                pojo: {},
+                rules: {
+                    newPassword: [
+                        {validator: validatePass, trigger: 'blur'}
+                    ],
+                    confirmPassword: [
+                        {validator: validatePass2, trigger: 'blur'}
+                    ]
+                }
+            };
+        },
+        created: function () {
+            axios.get("/login/name.do").then(response => {
+                this.pojo = {loginName: response.data.name};
+            });
+        },
+        methods: {
+            changePassword: function () {
+                let map = {"newPassword": this.pojo.newPassword, "oldPassword": this.pojo.oldPassword,"loginName":this.pojo.loginName};
+                axios.post("/admin/edit.do", map).then(response => {
+                    if (response.data.code === 0) {
+                        this.pojo = {"loginName": this.pojo.loginName};
+                        this.$alert('密码修改成功', '提示');
+                    } else {
+                        this.$alert(response.data.message, '提示');
+                    }
+                })
+            }
+        }
+    })
+</script>
+</body>
+</html>

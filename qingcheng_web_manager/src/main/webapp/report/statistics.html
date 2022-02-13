@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>网站日流量统计</title>
+    <!--引入样式-->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../plugins/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+        <div id="app">
+            <el-date-picker
+                    v-model="dateRange"
+                    type="date"
+                    placeholder="选择日期"
+                    @change="fetchData()">
+            </el-date-picker>
+
+            <div id="main" style="width: 600px;height:400px;"></div>
+
+    </div>
+</body>
+    <script src="/js/util.js"></script>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.js"></script>
+    <script src="/js/elementui.js"></script>
+    <script src="/js/echarts.common.min.js"></script>
+
+<script>
+    new Vue({
+        el:'#app',
+        data(){
+            return {
+                dateRange : [],
+                tableData : []
+            }
+        },
+        methods: {
+            fetchData(){
+                let date = this.dateRange[0].Format("yyyy‐MM‐dd");
+                axios.get(`/categoryReport/dayMeasurement.do?date=${date}`).then(res => {
+                    this.fetchData = res.data;
+
+                    let order_conversion =[]; //下单转化率
+                    let payment_conversion = []; //付款转化率
+                    let deal_conversion = []; //成交转化率
+
+                    for (let i = 0; i < this.tableData.length; i++) {
+                        order_conversion.push(this.tableData[i].order_people / 10);
+                        payment_conversion.push(this.tableData[i].pay_people / order_people);
+                        deal_conversion.push(this.tableData[i].pay_people / 10);
+                    }
+
+                    //创建饼图
+                    let myChart = echarts.init(document.getElementById('main'));
+                    let option = {
+                        title: {
+                            text: '昨日网站日流量',
+                            subtext: '从凌晨0:00开始统计',
+                            x: 'center'
+                        },
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: "{a} <br/>{b} : {c}%"
+                        },
+                        toolbox: {
+                            feature: {
+                                dataView: {readOnly: false},
+                                restore: {},
+                                saveAsImage: {}
+                            }
+                        },
+                        legend: {
+                            data: ['下单转化率','付款转化率','成交转化率']
+                        },
+                        calculable: true,
+                        series: [
+                            {
+                                name:'下单转化率',
+                                type:'funnel',
+                                left: '10%',
+                                top: 60,
+                                //x2: 80,
+                                bottom: 60,
+                                width: '80%',
+                                // height: {totalHeight} - y - y2,
+                                min: 0,
+                                max: 100,
+                                minSize: '0%',
+                                maxSize: '100%',
+                                sort: 'descending',
+                                gap: 2,
+                                label: {
+                                    show: true,
+                                    position: 'inside'
+                                },
+                                labelLine: {
+                                    length: 10,
+                                    lineStyle: {
+                                        width: 1,
+                                        type: 'solid'
+                                    }
+                                },
+                                itemStyle: {
+                                    borderColor: '#fff',
+                                    borderWidth: 1
+                                },
+                                emphasis: {
+                                    label: {
+                                        fontSize: 20
+                                    }
+                                },
+                                data: [
+                                    {value: order_conversion, name: '下单转化率'},
+                                    {value: payment_conversion, name: '付款转化率'},
+                                    {value: deal_conversion, name: '成交转化率'},
+                                ]
+                            }
+                        ]
+                    };
+                    // 使用刚指定的配置项和数据显示图表。
+                    myChart.setOption(option);
+                });
+            }
+        },
+    });
+</script>
+</html>

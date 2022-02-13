@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>权限管理</title>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../css/elementui.css">
+    <link rel="stylesheet" href="../plugins/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <style scope>
+        /* 当前品类弹框 */
+        .el-dialog {
+            width: 730px !important;
+            height: 577px !important;
+            background-color: #18202a;
+            box-shadow: 0px 2px 12px 0px rgba(0, 0, 0, 0.06);
+        }
+
+        .filterClassfiy .el-dialog__body {
+            padding: 20px 30px;
+        }
+
+        .el-dialog .el-dialog__title {
+            color: #fff;
+        }
+
+        .filterClassfiy .wrap .title {
+            font-size: 16px;
+            color: #acacac;
+            margin: 5px;
+        }
+
+        .filterClassfiy .wrap .content {
+            width: 630px;
+            height: 355px;
+            padding: 20px;
+            overflow-y: auto;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .filterClassfiy .wrap .content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filterClassfiy .itemContent .el-checkbox {
+            color: #fff;
+            font-size: 12px;
+            margin: 5px;
+            width: 31%;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        .filterClassfiy .wrap .content .el-checkbox__label {
+            padding-left: 6px;
+        }
+
+        .filterClassfiy .wrap .content .itemHeader {
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px;
+        }
+
+        .filterClassfiy .wrap .content .itemHeader .el-checkbox {
+            width: 25%;
+            color: #fff;
+        }
+
+        .filterClassfiy .wrap .content .itemHeader .el-checkbox__inner {
+            left: 54px;
+        }
+
+        .filterClassfiy .wrap .content .itemHeader .allCheck {
+            font-size: 12px;
+            display: flex;
+            width: 70px;
+            align-items: center;
+        }
+
+        .filterClassfiy .wrap .content .itemHeader .allCheck span {
+            display: inline-block;
+        }
+
+        .filterClassfiy .wrap .content .itemContent {
+            background-color: #232b34;
+            padding: 10px 20px 0;
+        }
+
+        .confirm-btn {
+            width: 100px;
+            height: 29px;
+            color: #fff;
+            background: rgba(0, 131, 247, 0.5);
+            font-size: 14px;
+            outline: none;
+            border: 0;
+            cursor: pointer
+        }
+
+        .el-dialog__footer {
+            text-align: center
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <template>
+        <div class="checkboxgroup">
+            <el-button type="primary" @click="handleFilterClassify">权限管理</el-button>
+            <el-dialog
+                    class="filterClassfiy"
+                    title="筛选"
+                    :close-on-click-modal="false"
+                    :visible.sync="dialogVisibleClassify"
+                    width="730px">
+                <div class="wrap">
+                    <div class="title">权限选择</div>
+                    <div class="content">
+                        <template v-if="classifyData!=null && classifyData.length>0">
+                            <div class="item" v-for="(first,firIndex) in classifyData">
+                                <div class="itemHeader">
+                                    <div v-cloak>{{first.skillLableName}}</div>
+                                    <div class="allCheck">
+                                        <el-checkbox
+                                                v-model="first.mychecked"
+                                                @change="firstChanged(firIndex,first.skillLableId)"
+                                                :label="first.skillLableId"
+                                        >全选
+                                        </el-checkbox>
+                                    </div>
+                                </div>
+                                <div class="itemContent">
+                                    <template
+                                            v-for="(second,index2) in first.serviceClassEntitys">
+                                        <el-checkbox
+                                                v-model="second.mychecked"
+                                                @change="secondChanged(firIndex,second.serviceClassId)"
+                                                :title="second.serviceClassName"
+                                                :label="second.serviceClassId">{{second.serviceClassName}}
+                                        </el-checkbox>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <span slot="footer" class="dialog-footer">
+                    <button class="confirm-btn" @click="handleSelectAllClassfiy">全选</button>
+                    <button class="confirm-btn" @click="handleEmptyAllClassfiy">清空</button>
+                    <button class="confirm-btn" @click="handleClassfiySure">确定</button>
+                </span>
+            </el-dialog>
+        </div>
+    </template>
+</div>
+
+<script src="/js/vue.js"></script>
+<script src="/js/axios.js"></script>
+<script src="/js/elementui.js"></script>
+<script src="/js/util.js"></script>
+<script>
+    new Vue({
+        el: "#app",
+        name: "Checkbox",
+        props: {},
+        data() {
+            return {
+                dialogVisibleClassify: false, //品类弹窗是否显示
+                classifyData: [], //当前所有品类数组
+                checkedClassify: [] // 当前选中
+            };
+        },
+        mounted() {
+            //获取品类数据
+            this.getClassifyData();
+        },
+        methods: {
+            getClassifyData() {
+                axios.get("/resource/findAllResource.do").then(res => {
+                    let data = res.data;
+                    for (let i = 0; i < data.length; i++) {
+                        let one = data[i];
+                        let children = one.children;
+                        one.skillLableName = one.resName;
+                        one.serviceClassEntitys = one.children;
+                        for (let j = 0; j < children.length; j++) {
+                            let two = children[j];
+                            two.serviceClassName = two.resName;
+                            two.serviceClassId = two.id;
+                        }
+                    }
+                    let result = data;
+                    for (let i = 0; i < result.length; i++) {
+                        result[i]["mychecked"] = false;
+                        for (let j = 0; j < result[i].serviceClassEntitys.length; j++) {
+                            result[i].serviceClassEntitys[j]["mychecked"] = false;
+                        }
+                    }
+                    this.classifyData = result;
+                }).catch(err => {
+                    console.log(err);
+                });
+            },
+
+            //点击品类筛选
+            handleFilterClassify() {
+                let id = getQueryString("id");
+                axios.get(`/role/findResourceIdsByRoleId.do?id=${id}`).then(res => {
+                    this.checkedClassify = res.data;
+                    for (let i = 0; i < this.classifyData.length; i++) {
+                        let serviceClassEntitys = this.classifyData[i].serviceClassEntitys;
+                        let len = serviceClassEntitys.length;
+                        for (let j = 0; j < len; j++) {
+                            for (let k = 0; k < this.checkedClassify.length; k++) {
+                                if (serviceClassEntitys[j].serviceClassId === this.checkedClassify[k]) {
+                                    serviceClassEntitys[j].mychecked = true;
+                                }
+                            }
+                        }
+                    }
+                });
+                this.dialogVisibleClassify = true;
+            },
+
+            //品类弹框选择所有
+            handleSelectAllClassfiy: function () {
+                for (let i = 0; i < this.classifyData.length; i++) {
+                    this.classifyData[i].mychecked = true;
+                    this.firstChanged(i); //调用一级change事件
+                }
+            },
+
+            // 一级change事件
+            firstChanged: function (index) {
+                if (this.classifyData[index].mychecked === false) {
+                    let childrenArray = this.classifyData[index].serviceClassEntitys;
+                    if (childrenArray) {
+                        for (let i = 0, len = childrenArray.length; i < len; i++) {
+                            childrenArray[i].mychecked = false;
+                        }
+                    }
+                } else if (this.classifyData[index].mychecked === true) {
+                    let childrenArray = this.classifyData[index].serviceClassEntitys;
+                    if (childrenArray) {
+                        for (let i = 0, len = childrenArray.length; i < len; i++) {
+                            childrenArray[i].mychecked = true;
+                        }
+                    }
+                }
+            },
+            //二级change事件
+            secondChanged: function (firIndex) {
+                let childrenArray = this.classifyData[firIndex].serviceClassEntitys;
+                let tickCount = 0,
+                    unTickCount = 0,
+                    len = childrenArray.length;
+                for (let i = 0; i < len; i++) {
+                    if (childrenArray[i].mychecked === true) {
+                        tickCount++;
+                    }
+                    if (childrenArray[i].mychecked === false) {
+                        unTickCount++;
+                    }
+                }
+                this.classifyData[firIndex].mychecked = tickCount === len;
+            },
+
+            //品类弹框清空所有
+            handleEmptyAllClassfiy: function () {
+                for (let i = 0; i < this.classifyData.length; i++) {
+                    for (let j = 0; j < this.classifyData.length; j++) {
+                        this.classifyData[i].mychecked = false;
+                        this.firstChanged(i)//调用一级change事件
+                    }
+                }
+            },
+
+            //品类筛选关闭
+            handleClassfiySure: function () {
+                this.checkedClassify = [];
+                this.checkedClassifyName = [];
+                // 对classifyData处理，给checkedClassify和checkedClassifyName赋值
+                for (let i = 0; i < this.classifyData.length; i++) {
+                    let serviceClassEntitys = this.classifyData[i].serviceClassEntitys;
+                    let len = serviceClassEntitys.length;
+                    for (let j = 0; j < len; j++) {
+                        if (serviceClassEntitys[j].mychecked === true) {
+                            this.checkedClassify.push(serviceClassEntitys[j].serviceClassId);
+                            this.checkedClassifyName.push(serviceClassEntitys[j].serviceClassName)
+                        }
+                    }
+                }
+                axios.post("/role/changeResource.do", {
+                    roleId: getQueryString("id"),
+                    resourceIds: this.checkedClassify
+                }).then(res => {
+                    if (res.data.code === 0) {
+                        this.dialogVisibleClassify = false;//关闭弹窗
+                    }
+                });
+            },
+        }
+    });
+</script>
+</body>
+</html>
